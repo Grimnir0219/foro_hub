@@ -1,32 +1,81 @@
 package com.example.forum.security;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "your_secret_key";
-    private static final long EXPIRATION_TIME = 86400000; // 1 día en milisegundos
+    private final Key key;
 
-    public String generateToken(String username) {
-        return JWT.create()
-                .withSubject(username)
-                .withIssuedAt(new Date())
-                .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .sign(Algorithm.HMAC256(SECRET));
+    public JwtUtil() {
+        // Genera una clave segura para HS256
+        this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     }
 
-    public String validateToken(String token) throws JWTVerificationException {
-        DecodedJWT decodedJWT = JWT.require(Algorithm.HMAC256(SECRET))
-                .build()
-                .verify(token);
+    /**
+     * Genera un token JWT para el usuario dado.
+     *
+     * @param username El nombre del usuario para el que se genera el token.
+     * @return El token JWT generado.
+     */
+    public String generateToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
+                .signWith(key)
+                .compact();
+    }
 
-        return decodedJWT.getSubject(); // Devuelve el nombre de usuario del token
+    /**
+     * Extrae el nombre del usuario del token JWT.
+     *
+     * @param token El token JWT.
+     * @return El nombre del usuario contenido en el token.
+     */
+    public String extractUsername(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    /**
+     * Verifica si el token JWT es válido para el usuario dado.
+     *
+     * @param token El token JWT.
+     * @param username El nombre del usuario.
+     * @return True si el token es válido, False en caso contrario.
+     */
+    public boolean validateToken(String token, String username) {
+        return username.equals(extractUsername(token)) && !isTokenExpired(token);
+    }
+
+    /**
+     * Verifica si el token JWT ha expirado.
+     *
+     * @param token El token JWT.
+     * @return True si el token ha expirado, False en caso contrario.
+     */
+    private boolean isTokenExpired(String token) {
+        return getClaims(token).getExpiration().before(new Date());
+    }
+
+    /**
+     * Obtiene los claims del token JWT.
+     *
+     * @param token El token JWT.
+     * @return Los claims contenidos en el token.
+     */
+    private Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

@@ -25,7 +25,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",             // Permitir autenticación
+                                "/swagger-ui.html",     // Swagger UI
+                                "/swagger-ui/**",       // Recursos de Swagger UI
+                                "/v3/api-docs/**",      // Documentación API
+                                "/swagger-resources/**",
+                                "/webjars/**"           // Recursos estáticos
+                        ).permitAll()
+                        .requestMatchers("/topics/**").hasRole("USER") // Acceso permitido a usuarios autenticados con rol USER
+                        .requestMatchers("/admin/**").hasRole("ADMIN") // Acceso permitido solo para administradores
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -43,6 +52,9 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 }
+
+
+
 
 
 
