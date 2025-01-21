@@ -66,4 +66,4 @@ Foro Hub es una aplicación de BackEnd desarrollada con **Spring Boot**, que pro
 
 1. **Clona el repositorio**:
    ```bash
-   git clone https://github.com/tuusuario/foro-hub.git
+   git clone https://github.com/Grimnir0219/foro_hub
