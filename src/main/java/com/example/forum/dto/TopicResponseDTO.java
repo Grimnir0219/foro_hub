@@ -1,31 +1,41 @@
 package com.example.forum.dto;
 
-import java.time.LocalDateTime;
+import com.example.forum.model.Topic;
 
-// DTO para enviar información sobre un tema al cliente.
+import java.time.LocalDateTime;
 
 public class TopicResponseDTO {
 
-    private Long id; // ID del tópico
-    private String title; // Título del tópico
-    private String message; // Contenido del tópico
-    private LocalDateTime creationDate; // Fecha de creación
-    private String status; // Estado del tópico
-    private String authorName; // Nombre del autor
-    private String courseName; // Nombre del curso
+    private Long id;
+    private String title;
+    private String message;
+    private LocalDateTime creationDate;
+    private String status;
+    private String authorName;
+    private String courseName;
 
-    // Constructor
+    // Constructor que toma un objeto Topic
+    public TopicResponseDTO(Topic topic) {
+        this.id = topic.getId();
+        this.title = topic.getTitle();
+        this.message = topic.getMessage();
+        this.creationDate = topic.getCreationDate();
+        this.status = topic.getStatus();
+        this.authorName = topic.getAuthor() != null ? topic.getAuthor().getName() : "Autor desconocido";
+        this.courseName = topic.getCourse() != null ? topic.getCourse().getName() : "Curso desconocido";
+    }
+
     public TopicResponseDTO(Long id, String title, String message, LocalDateTime creationDate, String status, String authorName, String courseName) {
         this.id = id;
         this.title = title;
         this.message = message;
         this.creationDate = creationDate;
         this.status = status;
-        this.authorName = authorName;
-        this.courseName = courseName;
+        this.authorName = authorName != null ? authorName : "Autor desconocido";
+        this.courseName = courseName != null ? courseName : "Curso desconocido";
     }
 
-
+    // Getters
     public Long getId() {
         return id;
     }
@@ -54,4 +64,3 @@ public class TopicResponseDTO {
         return courseName;
     }
 }
-

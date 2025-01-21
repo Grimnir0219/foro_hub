@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 // Permiso dentro del sistema.
 @Entity
+@Table(name = "profiles")
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,28 +1,35 @@
 package com.example.forum.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
-//Usuario registrado del foro.
+/**
+ * Representa un usuario registrado en el foro.
+ */
 @Entity
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String email;
     private String password;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    private List<Profile> profiles;
+    @JoinTable(
+            name = "users_profiles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "profile_id")
+    )
+    private List<Profile> profiles = new ArrayList<>();
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Response> responses = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -30,6 +37,14 @@ public class User {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEmail() {
@@ -54,5 +69,13 @@ public class User {
 
     public void setProfiles(List<Profile> profiles) {
         this.profiles = profiles;
+    }
+
+    public List<Response> getResponses() {
+        return responses;
+    }
+
+    public void setResponses(List<Response> responses) {
+        this.responses = responses;
     }
 }

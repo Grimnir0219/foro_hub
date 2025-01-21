@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 //Curso relacionado con un tema del foro.
 @Entity
+@Table(name = "courses")
 public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

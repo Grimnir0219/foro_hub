@@ -2,83 +2,148 @@ package com.example.forum.service;
 
 import com.example.forum.dto.TopicRequestDTO;
 import com.example.forum.dto.TopicResponseDTO;
+import com.example.forum.dto.ResponseRequestDTO;
 import com.example.forum.model.Course;
 import com.example.forum.model.Topic;
+import com.example.forum.model.Response;
 import com.example.forum.model.User;
 import com.example.forum.repository.TopicRepository;
+import com.example.forum.repository.UserRepository;
+import com.example.forum.repository.ResponseRepository;
+import com.example.forum.repository.CourseRepository;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-// Servicio para manejar la lógica de negocio relacionada con Topic.
 
 @Service
 public class TopicService {
 
     private final TopicRepository topicRepository;
+    private final UserRepository userRepository;
+    private final ResponseRepository responseRepository;
+    private final CourseRepository courseRepository; // Agregado
 
-    public TopicService(TopicRepository topicRepository) {
+    // Constructor con inyección de dependencias
+    public TopicService(TopicRepository topicRepository, UserRepository userRepository, ResponseRepository responseRepository, CourseRepository courseRepository) {
         this.topicRepository = topicRepository;
+        this.userRepository = userRepository;
+        this.responseRepository = responseRepository;
+        this.courseRepository = courseRepository; // Inicialización
     }
-
-//      Registra un nuevo tema en la base de datos.
-//      @param requestDTO Datos del tema a registrar.
-//      @return El tema registrado.
 
     public Topic save(Topic topic) {
         return topicRepository.save(topic);
     }
 
-    public Topic registerTopic(@Valid TopicRequestDTO requestDTO, User author, Course course) {
+    // Método actualizado para registrar un nuevo tópico
+    public TopicResponseDTO registerTopic(@Valid TopicRequestDTO requestDTO) {
+        // Buscar el autor por ID
+        User author = userRepository.findById(requestDTO.getAuthorId())
+                .orElseThrow(() -> new IllegalArgumentException("Autor no encontrado"));
+
+        // Buscar el curso por ID
+        Course course = courseRepository.findById(requestDTO.getCourseId())
+                .orElseThrow(() -> new IllegalArgumentException("Curso no encontrado"));
+
+        // Crear un nuevo tópico
         Topic topic = new Topic();
         topic.setTitle(requestDTO.getTitle());
         topic.setMessage(requestDTO.getMessage());
+        topic.setStatus(requestDTO.getStatus());
         topic.setAuthor(author);
         topic.setCourse(course);
 
-        return topicRepository.save(topic);
-    }
+        // Guardar el tópico en la base de datos
+        Topic savedTopic = topicRepository.save(topic);
 
-    // Devuelve una página de temas en formato DTO.
-    public Page<TopicResponseDTO> listAllTopics(Pageable pageable) {
-        return topicRepository.findAll(pageable).map(topic ->
-                new TopicResponseDTO(
-                        topic.getId(),
-                        topic.getTitle(),
-                        topic.getMessage(),
-                        topic.getCreationDate(),
-                        topic.getStatus(),
-                        topic.getAuthor().getName(),
-                        topic.getCourse().getName()
-                )
+        // Devolver un TopicResponseDTO
+        return new TopicResponseDTO(
+                savedTopic.getId(),
+                savedTopic.getTitle(),
+                savedTopic.getMessage(),
+                savedTopic.getCreationDate(),
+                savedTopic.getStatus(),
+                savedTopic.getAuthor().getName(),
+                savedTopic.getCourse().getName()
         );
     }
 
-    //Filtra los temas por nombre del curso y año de creación
-    //@param courseName nombre del curso
-    //@param year año de crecación
-    //@return Lista de temas filtrados en formato DTO
+    public Page<TopicResponseDTO> listAllTopics(Pageable pageable) {
+        return topicRepository.findAll(pageable)
+                .map(TopicResponseDTO::new);
+    }
 
     public List<TopicResponseDTO> filterTopicsByCourseAndYear(String courseName, int year) {
-
-        // Llamada al método del repositorio para obtener los tópicos filtrados.
-
-        return topicRepository.findByCourseNameAndCreationDateYear(courseName, year)
-                .stream()
-                .map(topic -> new TopicResponseDTO(
-                        topic.getId(),
-                        topic.getTitle(),
-                        topic.getMessage(),
-                        topic.getCreationDate(),
-                        topic.getStatus(),
-                        topic.getAuthor().getName(),
-                        topic.getCourse().getName()
-                ))
-                .collect(Collectors.toList());
+        List<Topic> topics = topicRepository.findByCourseNameAndCreationDateYear(courseName, year);
+        return topics.stream().map(TopicResponseDTO::new).toList();
     }
-}
 
+    public List<TopicResponseDTO> filterTopicsByStatus(String status) {
+        List<Topic> topics = topicRepository.findByStatusIgnoreCase(status);
+        return topics.stream()
+                .map(TopicResponseDTO::new)
+                .toList();
+    }
+
+    public Response addResponse(Long topicId, ResponseRequestDTO requestDTO) {
+        // Verificar el tópico
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new IllegalArgumentException("Tópico no encontrado"));
+        System.out.println("Tópico encontrado: " + topic);
+
+        // Verificar el autor
+        User author = userRepository.findById(requestDTO.getAuthorId())
+                .orElseThrow(() -> new IllegalArgumentException("Autor no encontrado"));
+        System.out.println("Autor encontrado: " + author);
+
+        // Crear la respuesta
+        Response response = new Response();
+        response.setMessage(requestDTO.getMessage());
+        response.setAuthor(author);
+        response.setTopic(topic);
+        System.out.println("Respuesta creada: " + response);
+
+        // Guardar la respuesta
+        return responseRepository.save(response);
+    }
+
+
+    public TopicResponseDTO updateTopic(Long id, TopicRequestDTO requestDTO) {
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tópico no encontrado"));
+
+        topic.setTitle(requestDTO.getTitle());
+        topic.setMessage(requestDTO.getMessage());
+        topic.setStatus(requestDTO.getStatus());
+
+        Topic updatedTopic = topicRepository.save(topic);
+
+        return new TopicResponseDTO(
+                updatedTopic.getId(),
+                updatedTopic.getTitle(),
+                updatedTopic.getMessage(),
+                updatedTopic.getCreationDate(),
+                updatedTopic.getStatus(),
+                updatedTopic.getAuthor().getName(),
+                updatedTopic.getCourse().getName()
+        );
+    }
+
+    public void deleteTopic(Long id) {
+        if (!topicRepository.existsById(id)) {
+            throw new IllegalArgumentException("Tópico no encontrado");
+        }
+        topicRepository.deleteById(id);
+    }
+
+    public List<Response> listResponsesByTopicId(Long topicId) {
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new IllegalArgumentException("Tópico no encontrado"));
+        return topic.getResponses();
+    }
+
+
+}

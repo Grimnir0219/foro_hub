@@ -1,7 +1,9 @@
 package com.example.forum.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 //Tema del foro.
@@ -20,15 +22,16 @@ public class Topic {
     private String status;
 
     @ManyToOne
-    @JoinColumn(name = "author_id")
+    @JoinColumn(name = "author_id", referencedColumnName = "id")
     private User author;
 
     @ManyToOne
     @JoinColumn(name = "course_id")
     private Course course;
 
-    @OneToMany(mappedBy = "topic")
-    private List<Response> responses;
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Response> responses = new ArrayList<>();
+
 
     public Topic() {
         this.creationDate = LocalDateTime.now();
